@@ -1,0 +1,43 @@
+{
+  "name": "@entkenntnis/plugin-terminator",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/plugin-terminator.esm.js",
+  "typings": "dist/index.d.ts",
+  "repository": "github:entkenntnis/plugin-terminator",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "lint": "tsdx lint src"
+  },
+  "dependencies": {
+    "@edtr-io/editor-ui": "^0.11.3",
+    "@edtr-io/plugin": "^0.11.3",
+    "katex": "^0.10.0"
+  },
+  "devDependencies": {
+    "@edtr-io/core": "^0.11.3",
+    "@types/jest": "^24.0.18",
+    "@types/katex": "^0.10.2",
+    "@types/react": "^16.9.5",
+    "@types/react-dom": "^16.9.1",
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0",
+    "react-scripts": "^3.2.0",
+    "tsdx": "^0.9.3",
+    "tslib": "^1.10.0",
+    "typescript": "^3.6.3"
+  },
+  "peerDependencies": {
+    "@edtr-io/core": "^0.11.3",
+    "react": "^16.8.0",
+    "react-dom": "^16.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
