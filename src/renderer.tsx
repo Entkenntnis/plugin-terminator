@@ -49,6 +49,36 @@ export function TerminatorRenderer(
   const fracNRef = React.createRef<HTMLInputElement>()
   const fracDRef = React.createRef<HTMLInputElement>()
 
+  function reset() {
+    if (useFracs) {
+      if (fracNRef.current) {
+        fracNRef.current.value = ''
+      }
+      if (fracDRef.current) {
+        fracDRef.current.value = ''
+      }
+      if (fracWRef.current) {
+        fracWRef.current.value = ''
+      }
+    } else {
+      if (numberRef.current) {
+        numberRef.current.value = ''
+      }
+    }
+  }
+
+  function focus() {
+    if (useFracs) {
+      if (fracWRef.current) {
+        fracWRef.current.focus()
+      }
+    } else {
+      if (numberRef.current) {
+        numberRef.current.focus()
+      }
+    }
+  }
+
   function checkResult() {
     if (resultState === 'none') {
       let result: Frac | null = null
@@ -81,7 +111,7 @@ export function TerminatorRenderer(
                 alert(
                   'Herzlichen Glückwunsch! Du hast diese Fähigkeit gemeistert!'
                 ),
-              200
+              0
             )
           }
           setStrikeCount(strikeCount + 1)
@@ -95,23 +125,8 @@ export function TerminatorRenderer(
     } else {
       setIndex(index + 1)
       setResultState('none')
-      if (useFracs) {
-        if (fracNRef.current) {
-          fracNRef.current.value = ''
-        }
-        if (fracDRef.current) {
-          fracDRef.current.value = ''
-        }
-        if (fracWRef.current) {
-          fracWRef.current.value = ''
-          fracWRef.current.focus()
-        }
-      } else {
-        if (numberRef.current) {
-          numberRef.current.value = ''
-          numberRef.current.focus()
-        }
-      }
+      reset()
+      focus()
     }
   }
 
@@ -121,7 +136,12 @@ export function TerminatorRenderer(
         ? props.renderIntoExtendedSettings(
             <TerminatorSettings
               state={props.state}
-              inc={() => setIndex(index + 1)}
+              inc={() => {
+                setIndex(index + 1)
+                setResultState('none')
+                setStrikeCount(0)
+                reset()
+              }}
             />
           )
         : null}
