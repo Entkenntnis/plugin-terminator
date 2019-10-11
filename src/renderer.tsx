@@ -2,8 +2,10 @@ import { styled } from '@edtr-io/editor-ui'
 import { StatefulPluginEditorProps, StateTypeReturnType } from '@edtr-io/plugin'
 import KaTeX from 'katex'
 import * as React from 'react'
+import { Grid, Col, Row } from 'react-styled-flexboxgrid'
 
 import { terminatorState } from '.'
+import { NodeType } from './terminator/00_Declarations'
 import { TNode } from './terminator/05_TNode'
 import { Frac } from './terminator/15_Frac'
 import { Create } from './terminator/30_Interface'
@@ -14,17 +16,43 @@ const BlockMathSpan = styled.span({
   textAlign: 'center'
 })
 
+interface SolutionStep {
+  formula: TNode
+  description: string
+}
+
+function describe(type: NodeType): string {
+  if (type === 'plus') {
+    return 'Addiere'
+  }
+  if (type === 'minus') {
+    return 'Subtrahiere'
+  }
+  if (type === 'mal') {
+    return 'Multipliziere'
+  }
+  if (type === 'geteilt') {
+    return 'Dividiere'
+  }
+  if (type === 'potenz') {
+    return 'Potenziere'
+  }
+  return 'Rechne'
+}
+
 export function TerminatorRenderer(
   props: StatefulPluginEditorProps<typeof terminatorState> & {
     renderIntoExtendedSettings?: (children: React.ReactNode) => React.ReactNode
   }
 ) {
   const [term, setTerm] = React.useState<TNode | null>(null)
+  const [solutionSteps, setSolutionSteps] = React.useState<SolutionStep[]>([])
   const [index, setIndex] = React.useState(1)
   const [error, setError] = React.useState('')
 
   const [strikeCount, setStrikeCount] = React.useState(0)
   const [resultState, setResultState] = React.useState('none')
+  const [showSolution, setShowSolution] = React.useState(false)
 
   const stateRef = React.useRef(props.state)
   React.useEffect(() => {
@@ -40,7 +68,63 @@ export function TerminatorRenderer(
       setError('Es gab einen Fehler: ' + e.message)
     }
     if (newTerm && error) setError('')
-    if (newTerm) setTerm(newTerm)
+    if (newTerm) {
+      setTerm(newTerm)
+      // Ein guter Moment um Lösungswege zu erzeugen...
+      let currentStep = newTerm.clone()
+      let steps: SolutionStep[] = []
+      let currentEvaluable: TNode | null = null
+      while (currentStep.type !== 'zahl') {
+        // suche nach möglicher Berechnung
+        const lastEvaluable = currentEvaluable
+        currentEvaluable = null
+        currentStep.traverse(node => {
+          const l = node.left()
+          const r = node.right()
+          if (
+            !currentEvaluable &&
+            l &&
+            r &&
+            l.type === 'zahl' &&
+            r.type === 'zahl'
+          ) {
+            currentEvaluable = node
+          }
+        })
+        if (currentEvaluable) {
+          const ce: TNode = currentEvaluable
+          const thisStep = currentStep.clone()
+          thisStep.traverse(node => {
+            if (ce && node.value === ce.value) {
+              node.color = 'blue'
+            }
+            // @ts-ignore
+            if (lastEvaluable !== null && node.value === lastEvaluable.value) {
+              node.bold = true
+            }
+          })
+
+          steps.push({
+            formula: thisStep,
+            description: describe(ce.type)
+          })
+          const t = new TNode('zahl', ce.value)
+          currentStep = currentStep.replace(ce, t)
+        } else {
+          throw new Error('Irgendwas ist schiefgelaufen')
+        }
+
+        if (!currentEvaluable) {
+        } else {
+        }
+      }
+      currentStep.bold = true
+      steps.push({
+        formula: currentStep,
+        description: 'Ergebnis erreicht'
+      })
+      setSolutionSteps(steps)
+    }
   }, [index, stateRef, error])
 
   const useFracs = props.state.catalog.value.includes('frac')
@@ -50,6 +134,7 @@ export function TerminatorRenderer(
   const fracDRef = React.createRef<HTMLInputElement>()
 
   function reset() {
+    setShowSolution(false)
     if (useFracs) {
       if (fracNRef.current) {
         fracNRef.current.value = ''
@@ -116,6 +201,10 @@ export function TerminatorRenderer(
           }
           setStrikeCount(strikeCount + 1)
         } else {
+          if (document.activeElement) {
+            // @ts-ignore
+            document.activeElement.blur()
+          }
           setResultState('fail')
           setStrikeCount(0)
         }
@@ -145,7 +234,7 @@ export function TerminatorRenderer(
             />
           )
         : null}
-      <p>&nbsp;</p>
+      <p>Berechne</p>
       <p>
         {error ? (
           error
@@ -168,21 +257,65 @@ export function TerminatorRenderer(
         )}
       </p>
       {resultState !== 'none' ? (
-        <p style={{ textAlign: 'center' }}>
-          <span
-            style={{
-              color: '#fff',
-              borderRadius: '0.25rem',
-              backgroundColor:
-                resultState === 'success' ? '#22B24C' : '#EB6864',
-              fontWeight: 700,
-              padding: '0.25em 0.4em',
-              fontSize: '75%'
-            }}
-          >
-            {resultState === 'success' ? 'Gut gemacht!' : 'Leider falsch ...'}
-          </span>
-        </p>
+        <>
+          <p style={{ textAlign: 'center' }}>
+            <span
+              style={{
+                color: '#fff',
+                borderRadius: '0.25rem',
+                backgroundColor:
+                  resultState === 'success' ? '#83A617' : '#D9534F',
+                fontWeight: 700,
+                padding: '0.25em 0.4em',
+                fontSize: '75%'
+              }}
+            >
+              {resultState === 'success' ? 'Gut gemacht!' : 'Leider falsch ...'}
+            </span>
+            <a
+              style={{ marginLeft: '2rem', cursor: 'pointer' }}
+              onClick={() => {
+                setShowSolution(!showSolution)
+              }}
+            >
+              {showSolution ? '▲ Lösungweg verbergen' : '▼ Lösungweg anzeigen'}
+            </a>
+          </p>
+          {showSolution ? (
+            <Grid
+              fluid
+              style={{
+                width: '100%',
+                marginBottom: '1rem',
+                backgroundColor: '#eee'
+              }}
+            >
+              {solutionSteps.map(step => {
+                return (
+                  <Row>
+                    <Col xs={12} sm={9}>
+                      <BlockMathSpan
+                        dangerouslySetInnerHTML={{
+                          __html: KaTeX.renderToString(
+                            '\\displaystyle ' + step.formula.toTeX(),
+                            {
+                              throwOnError: false
+                            }
+                          )
+                        }}
+                      ></BlockMathSpan>
+                    </Col>
+                    <Col xs={12} sm={3}>
+                      <span style={{ marginTop: '1.7rem', display: 'block' }}>
+                        {step.description}
+                      </span>
+                    </Col>
+                  </Row>
+                )
+              })}
+            </Grid>
+          ) : null}
+        </>
       ) : null}
 
       {useFracs ? (
@@ -296,7 +429,16 @@ export function TerminatorRenderer(
         </p>
       )}
       <p style={{ textAlign: 'right' }}>
-        <button onClick={checkResult}>
+        <button
+          onClick={checkResult}
+          style={{
+            backgroundColor: '#007EC1',
+            color: 'white',
+            border: '1px solid transparent',
+            borderRadius: 2,
+            padding: '4px 12px'
+          }}
+        >
           {resultState === 'none'
             ? 'Prüfen'
             : resultState === 'success'
@@ -321,8 +463,8 @@ export function TerminatorRenderer(
             flexDirection: 'column',
             backgroundColor:
               strikeCount >= props.state.practiceCount.value
-                ? '#22B24C'
-                : '#369',
+                ? '#95BC1A'
+                : '#007EC1',
             width:
               Math.max(
                 1,

@@ -25,7 +25,7 @@ export const terminatorState = object({
 export const terminatorPlugin: StatefulPlugin<typeof terminatorState> = {
   Component: TerminatorRenderer,
   state: terminatorState,
-  title: 'TERMinator',
-  description: 'Trainer für Term- und Bruchaufgaben',
+  title: 'Dynamische Aufgaben (experimentell)',
+  description: 'Übungen generieren für Term- und Bruchaufgaben',
   onKeyDown: () => false
 }

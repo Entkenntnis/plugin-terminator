@@ -11,11 +11,17 @@ export class TNode implements TeXable {
 
   divAsFrac: boolean
 
+  bold: boolean
+
+  color: string | null
+
   constructor(type: NodeType, value: TeXable) {
     this.type = type
     this.value = value
     this.children = []
     this.divAsFrac = false
+    this.bold = false
+    this.color = null
   }
 
   // Durchläuft Knoten und Kindknoten
@@ -59,6 +65,20 @@ export class TNode implements TeXable {
 }
 
 function ConvertToTeX(tree: TNode, divAsFrac = false): string {
+  let result = _convert(tree, divAsFrac)
+  if (tree.bold) {
+    result =
+      '\\textbf{' +
+      result.replace(new RegExp('(\\\\left|\\\\right)', 'g'), '') +
+      '}'
+  }
+  if (tree.color) {
+    result = '\\textcolor{' + tree.color + '}{' + result + '}'
+  }
+  return result
+}
+
+function _convert(tree: TNode, divAsFrac = false): string {
   if (tree.type === 'zahl') {
     return tree.value.toTeX()
   } else if (tree.type === 'loch') {
