@@ -2,7 +2,6 @@ import { styled } from '@edtr-io/editor-ui'
 import { StatefulPluginEditorProps, StateTypeReturnType } from '@edtr-io/plugin'
 import KaTeX from 'katex'
 import * as React from 'react'
-import { Grid, Col, Row } from 'react-styled-flexboxgrid'
 
 import { terminatorState } from '.'
 import { NodeType } from './terminator/00_Declarations'
@@ -20,6 +19,8 @@ interface SolutionStep {
   formula: TNode
   description: string
 }
+
+const congrats = ['Gut gemacht!', 'Toll!', 'Weiter so!', 'Richtig!', 'Super!']
 
 function describe(type: NodeType): string {
   if (type === 'plus') {
@@ -53,6 +54,7 @@ export function TerminatorRenderer(
   const [strikeCount, setStrikeCount] = React.useState(0)
   const [resultState, setResultState] = React.useState('none')
   const [showSolution, setShowSolution] = React.useState(false)
+  const [congratsIndex, setCongratsIndex] = React.useState(0)
 
   const stateRef = React.useRef(props.state)
   React.useEffect(() => {
@@ -96,11 +98,11 @@ export function TerminatorRenderer(
           const thisStep = currentStep.clone()
           thisStep.traverse(node => {
             if (ce && node.value === ce.value) {
-              node.color = 'blue'
+              node.color = '007EC1'
             }
             // @ts-ignore
             if (lastEvaluable !== null && node.value === lastEvaluable.value) {
-              node.bold = true
+              node.color = 'orange'
             }
           })
 
@@ -190,6 +192,7 @@ export function TerminatorRenderer(
       if (result) {
         if (term && result.equals(term.value as Frac)) {
           setResultState('success')
+          setCongratsIndex(Math.floor(Math.random() * congrats.length))
           if (strikeCount + 1 === props.state.practiceCount.value) {
             setTimeout(
               () =>
@@ -234,7 +237,7 @@ export function TerminatorRenderer(
             />
           )
         : null}
-      <p>Berechne</p>
+      <p>Berechne:</p>
       <p>
         {error ? (
           error
@@ -244,7 +247,7 @@ export function TerminatorRenderer(
               __html: KaTeX.renderToString(
                 '\\displaystyle ' +
                   (term
-                    ? resultState === 'none'
+                    ? resultState === 'none' || resultState === 'success'
                       ? term.toTeX()
                       : term.toTeX() + '\\\\ \\, \\\\ = ' + term.value.toTeX()
                     : 'xxx'),
@@ -258,7 +261,7 @@ export function TerminatorRenderer(
       </p>
       {resultState !== 'none' ? (
         <>
-          <p style={{ textAlign: 'center' }}>
+          <p style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <span
               style={{
                 color: '#fff',
@@ -270,51 +273,11 @@ export function TerminatorRenderer(
                 fontSize: '75%'
               }}
             >
-              {resultState === 'success' ? 'Gut gemacht!' : 'Leider falsch ...'}
+              {resultState === 'success'
+                ? congrats[congratsIndex]
+                : 'Leider falsch ...'}
             </span>
-            <a
-              style={{ marginLeft: '2rem', cursor: 'pointer' }}
-              onClick={() => {
-                setShowSolution(!showSolution)
-              }}
-            >
-              {showSolution ? '▲ Lösungweg verbergen' : '▼ Lösungweg anzeigen'}
-            </a>
           </p>
-          {showSolution ? (
-            <Grid
-              fluid
-              style={{
-                width: '100%',
-                marginBottom: '1rem',
-                backgroundColor: '#eee'
-              }}
-            >
-              {solutionSteps.map(step => {
-                return (
-                  <Row>
-                    <Col xs={12} sm={9}>
-                      <BlockMathSpan
-                        dangerouslySetInnerHTML={{
-                          __html: KaTeX.renderToString(
-                            '\\displaystyle ' + step.formula.toTeX(),
-                            {
-                              throwOnError: false
-                            }
-                          )
-                        }}
-                      ></BlockMathSpan>
-                    </Col>
-                    <Col xs={12} sm={3}>
-                      <span style={{ marginTop: '1.7rem', display: 'block' }}>
-                        {step.description}
-                      </span>
-                    </Col>
-                  </Row>
-                )
-              })}
-            </Grid>
-          ) : null}
         </>
       ) : null}
 
@@ -428,6 +391,52 @@ export function TerminatorRenderer(
           />
         </p>
       )}
+
+      {resultState !== 'none' ? (
+        <p style={{ paddingTop: '0.5rem' }}>
+          <a
+            style={{ marginLeft: '2rem', cursor: 'pointer' }}
+            onClick={() => {
+              setShowSolution(!showSolution)
+            }}
+          >
+            {showSolution
+              ? '▲ Möglichen Rechenweg verbergen'
+              : '▼ Möglichen Rechenweg anzeigen'}
+          </a>
+        </p>
+      ) : null}
+
+      {showSolution ? (
+        <div
+          style={{
+            width: '100%',
+            marginBottom: '1rem',
+            paddingTop: '0.5rem',
+            paddingBottom: '0.5rem',
+            backgroundColor: '#eee',
+            borderRadius: '2px'
+          }}
+        >
+          {solutionSteps.map((step, i) => {
+            return (
+              <div
+                style={{ margin: '2rem' }}
+                dangerouslySetInnerHTML={{
+                  __html: KaTeX.renderToString(
+                    '\\displaystyle ' +
+                      (i === 0 ? ' \\, \\, \\, \\, \\, \\,' : ' = ') +
+                      step.formula.toTeX(),
+                    {
+                      throwOnError: false
+                    }
+                  )
+                }}
+              ></div>
+            )
+          })}
+        </div>
+      ) : null}
       <p style={{ textAlign: 'right' }}>
         <button
           onClick={checkResult}

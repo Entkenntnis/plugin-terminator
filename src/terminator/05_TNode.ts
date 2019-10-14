@@ -68,7 +68,7 @@ function ConvertToTeX(tree: TNode, divAsFrac = false): string {
   let result = _convert(tree, divAsFrac)
   if (tree.bold) {
     result =
-      '\\textbf{' +
+      '{\\bf ' +
       result.replace(new RegExp('(\\\\left|\\\\right)', 'g'), '') +
       '}'
   }
